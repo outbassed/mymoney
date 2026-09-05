@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.3.0';
+  const VERSION = '1.6';
   const GITHUB_REPO_BASE = '/mymoney';
   const basePath = location.hostname.endsWith('.github.io') ? GITHUB_REPO_BASE : '';
   let applyingRoute = false;
@@ -14,6 +14,7 @@
     '/mais': 'more',
     '/mais/dividas': 'more',
     '/mais/dividas/nova': 'more',
+    '/mais/simulacao': 'more',
     '/mais/categorias': 'more',
     '/mais/backup': 'more'
   };
@@ -58,6 +59,10 @@
       }
       return;
     }
+    if (route === '/mais/simulacao') {
+      document.querySelector('#simulationBtn')?.click();
+      return;
+    }
     if (route === '/mais/categorias') {
       document.querySelector('#categoriesBtn')?.click();
       return;
@@ -75,7 +80,7 @@
     renderPage(page, smooth);
     if (route.startsWith('/mais/')) setTimeout(() => openSubroute(route), 0);
     setTimeout(() => { applyingRoute = false; }, 10);
-    document.title = route === '/inicio' ? 'MyMoney' : `MyMoney · ${route.split('/').filter(Boolean).map(part => ({ historico: 'Histórico', metas: 'Metas', mais: 'Mais', dividas: 'Dívidas', nova: 'Nova dívida', categorias: 'Categorias', backup: 'Backup' }[part] || part)).join(' · ')}`;
+    document.title = route === '/inicio' ? 'MyMoney' : `MyMoney · ${route.split('/').filter(Boolean).map(part => ({ historico: 'Histórico', metas: 'Metas', mais: 'Mais', dividas: 'Dívidas', nova: 'Nova dívida', simulacao: 'Simulação', categorias: 'Categorias', backup: 'Backup' }[part] || part)).join(' · ')}`;
   }
 
   function navigate(route, { replace = false, smooth = true } = {}) {
@@ -117,6 +122,10 @@
       history.pushState({ route: '/mais/dividas' }, '', fullPath('/mais/dividas'));
       return;
     }
+    if (!applyingRoute && event.target.closest('#simulationBtn')) {
+      history.pushState({ route: '/mais/simulacao' }, '', fullPath('/mais/simulacao'));
+      return;
+    }
     if (!applyingRoute && event.target.closest('#categoriesBtn')) {
       history.pushState({ route: '/mais/categorias' }, '', fullPath('/mais/categorias'));
       return;
@@ -135,9 +144,11 @@
     }
 
     const debtClose = event.target.closest('#closeDebts');
+    const simulationClose = event.target.closest('#closeSimulation');
     const categoryClose = event.target.closest('#categoriesSheet [data-close-sheet]');
     const backupClose = event.target.closest('#backupSheet [data-close-sheet]');
-    if (!applyingRoute && (debtClose || categoryClose || backupClose)) {
+    const backdropClose = event.target.closest('#sheetBackdrop');
+    if (!applyingRoute && (debtClose || simulationClose || categoryClose || backupClose || (backdropClose && currentRoute().startsWith('/mais/')))) {
       history.pushState({ route: '/mais' }, '', fullPath('/mais'));
     }
   }, true);
