@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b0d12">
+  <title>MyMoney</title>
+  <style>html,body{margin:0;min-height:100%;background:#0b0d12;color:#f6f7fb;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}body{display:grid;place-items:center}.box{text-align:center;color:#9aa3b2;font-size:14px}</style>
+</head>
+<body>
+  <div class="box">Abrindo MyMoney...</div>
+  <script>
+    (() => {
+      const repoBase = location.hostname.endsWith('.github.io') ? '/mymoney' : '';
+      let route = location.pathname || '/inicio';
+      if (repoBase && route.startsWith(repoBase)) route = route.slice(repoBase.length) || '/inicio';
+      sessionStorage.setItem('mymoney:spa-route', `${route}${location.search}${location.hash}`);
+      location.replace(`${repoBase}/`);
+    })();
+  </script>
+</body>
+</html>
