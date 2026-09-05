@@ -184,7 +184,8 @@
     setText('#totalBalance', money.format(realBalance));
     const futureEl = document.querySelector('#futureIncomeBalance');
     if (futureEl) {
-      futureEl.textContent = `+ ${money.format(futureIncome)}`;
+      const futureText = `+ ${money.format(futureIncome)}`;
+      if (futureEl.textContent !== futureText) futureEl.textContent = futureText;
       futureEl.hidden = futureIncome <= 0;
     }
 
@@ -217,7 +218,7 @@
       if (tx.source === 'debt' && detail && !detail.textContent.includes('Dívida')) detail.textContent += ' · Dívida';
       if (scheduled) {
         if (detail && !detail.textContent.includes('Agendado')) detail.textContent += ' · Agendado';
-        if (status) status.textContent = 'Agendado';
+        if (status && status.textContent !== 'Agendado') status.textContent = 'Agendado';
       }
     });
   }
@@ -275,7 +276,7 @@
   }, true);
 
   const observer = new MutationObserver(() => scheduleFinancialRefresh());
-  observer.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
 
   function scheduleMidnightRefresh() {
     const now = new Date();
