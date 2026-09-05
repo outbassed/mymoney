@@ -12,7 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="MyMoney">
   <title>MyMoney</title>
-  <link rel="manifest" href="manifest.json?v=1.4.0">
+  <link rel="manifest" href="manifest.json?v=1.5.0">
   <link rel="icon" href="assets/app-icon.svg" type="image/svg+xml">
   <style>
     html,body{margin:0;min-height:100%;background:#0b0d12;color:#f6f7fb;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}*{box-sizing:border-box}
@@ -22,8 +22,8 @@
     @keyframes loaderPulse{50%{transform:scale(.94);opacity:.72}}@keyframes dot{50%{transform:translateY(-5px);opacity:.45}}
     @media (prefers-reduced-motion:reduce){.loaderLogo,.loaderDots i{animation:none}#loadingScreen,#app{transition:none!important}}
   </style>
-  <link id="mainStyles" rel="stylesheet" href="styles.css?v=1.4.0">
-  <link rel="stylesheet" href="debts.css?v=1.4.0">
+  <link id="mainStyles" rel="stylesheet" href="styles.css?v=1.5.0">
+  <link rel="stylesheet" href="debts.css?v=1.5.0">
 </head>
 <body>
   <div id="loadingScreen" aria-label="Carregando MyMoney">
@@ -106,7 +106,7 @@
         <div class="settings-group">
           <label class="settings-item switch-item"><span class="settings-icon orange"><svg><use href="assets/icons.svg#eye"></use></svg></span><span><b>Ocultar valores</b><small>Esconde seus números na tela</small></span><input id="hideValuesSwitch" type="checkbox" class="switch"></label>
         </div>
-        <p class="version-text">MyMoney v1.4.0</p>
+        <p class="version-text">MyMoney v1.5.0</p>
       </div>
     </section>
   </main>
@@ -137,7 +137,6 @@
     <div class="sheet-handle"></div><div class="sheet-title-row"><div><h2>Nova meta</h2><p>Defina quanto quer guardar.</p></div><button class="close-btn" data-close-sheet>×</button></div>
     <form id="goalForm"><label class="field"><span>Nome</span><input id="goalName" maxlength="40" placeholder="Ex.: Celular novo" required></label><label class="field"><span>Valor da meta</span><input id="goalTarget" inputmode="decimal" placeholder="R$ 0,00" required></label><label class="field"><span>Já guardei</span><input id="goalCurrent" inputmode="decimal" placeholder="R$ 0,00"></label><button class="primary-wide" type="submit">Criar meta</button></form>
   </section>
-
   <section class="bottom-sheet" id="backupSheet" aria-modal="true" role="dialog" aria-label="Backup">
     <div class="sheet-handle"></div><div class="sheet-title-row"><div><h2>Backup</h2><p>Seus dados continuam sendo seus.</p></div><button class="close-btn" data-close-sheet>×</button></div>
     <div class="backup-actions"><button class="secondary-wide" id="exportBackup"><svg><use href="assets/icons.svg#download"></use></svg>Exportar backup</button><label class="secondary-wide file-label"><svg><use href="assets/icons.svg#upload"></use></svg>Restaurar backup<input id="importBackup" type="file" accept="application/json,.json"></label></div>
@@ -145,9 +144,9 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="wallet-sync.js?v=1.4.0" defer></script>
-  <script src="app.js?v=1.4.0" defer></script>
-  <script src="debts.js?v=1.4.0" defer></script>
-  <script src="router.js?v=1.4.0" defer></script>
+  <script src="wallet-sync.js?v=1.5.0" defer></script>
+  <script src="app.js?v=1.5.0" defer></script>
+  <script src="debts.js?v=1.5.0" defer></script>
+  <script src="router.js?v=1.5.0" defer></script>
 </body>
 </html>
