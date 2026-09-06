@@ -3,6 +3,7 @@
 
   const DEBTS_KEY = 'mymoney:debts:v1';
   const MAIN_KEY = 'mymoney:data:v1';
+  const BALANCE_VIEW_KEY = 'mymoney:balance-side-view:v1';
   const nativeSetItem = Storage.prototype.setItem;
   const money = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
   let syncing = false;
@@ -38,6 +39,14 @@
 
   function monthKey(date) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  function balanceView() {
+    return localStorage.getItem(BALANCE_VIEW_KEY) === 'realized' ? 'realized' : 'scheduled';
+  }
+
+  function setBalanceView(view) {
+    localStorage.setItem(BALANCE_VIEW_KEY, view === 'realized' ? 'realized' : 'scheduled');
   }
 
   function isScheduled(item) {
@@ -140,17 +149,23 @@
       style.textContent = `
         .balance-value-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 20px}
         .balance-value-row #totalBalance{display:block;font-size:34px;line-height:1.1;letter-spacing:-.03em}
-        .scheduled-balance-stack{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-height:34px}
+        .balance-side-wrap{display:flex;align-items:center;gap:6px;min-width:0}
+        .scheduled-balance-stack{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-height:34px;min-width:0}
         .scheduled-balance{font-size:13px;font-weight:850;line-height:1.15;white-space:nowrap;letter-spacing:-.01em}
         .scheduled-balance.income{color:#76ad91}
         .scheduled-balance.expense{color:#bc7f86}
         .scheduled-balance[hidden]{display:none}
+        .balance-view-toggle{width:30px;height:30px;display:grid;place-items:center;flex:0 0 auto;border:1px solid rgba(255,255,255,.09);border-radius:10px;background:rgba(255,255,255,.045);color:#8f9bae;padding:0;cursor:pointer}
+        .balance-view-toggle svg{width:16px;height:16px;display:block;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .18s ease}
+        .balance-view-toggle:active svg{transform:rotate(45deg)}
+        .balance-view-toggle:focus-visible{outline:2px solid rgba(110,231,168,.55);outline-offset:2px}
         .scheduled-transaction{opacity:.82}
         .scheduled-transaction.scheduled-income .tx-value b{color:#8caf9d}
         .scheduled-transaction.scheduled-income .tx-value small{color:#7f9d90}
         .scheduled-transaction.scheduled-expense .tx-value b{color:#b98b90}
         .scheduled-transaction.scheduled-expense .tx-value small{color:#a27d82}
         .hidden-values .scheduled-balance,.hidden-values #monthResultPill{filter:blur(7px);user-select:none}
+        @media (prefers-reduced-motion:reduce){.balance-view-toggle svg{transition:none}}
       `;
       document.head.appendChild(style);
     }
@@ -162,26 +177,36 @@
       balance.parentNode.insertBefore(row, balance);
       row.appendChild(balance);
 
+      const side = document.createElement('span');
+      side.className = 'balance-side-wrap';
+
       const stack = document.createElement('span');
       stack.id = 'scheduledBalanceStack';
       stack.className = 'scheduled-balance-stack';
 
-      const futureIncome = document.createElement('span');
-      futureIncome.id = 'futureIncomeBalance';
-      futureIncome.className = 'scheduled-balance income money-value';
-      futureIncome.hidden = true;
-      futureIncome.title = 'Agendado para receber';
-      futureIncome.setAttribute('aria-label', 'Valor agendado para receber');
+      const top = document.createElement('span');
+      top.id = 'futureIncomeBalance';
+      top.className = 'scheduled-balance income money-value';
+      top.hidden = true;
 
-      const futureExpense = document.createElement('span');
-      futureExpense.id = 'futureExpenseBalance';
-      futureExpense.className = 'scheduled-balance expense money-value';
-      futureExpense.hidden = true;
-      futureExpense.title = 'Agendado para gastar';
-      futureExpense.setAttribute('aria-label', 'Valor agendado para gastar');
+      const bottom = document.createElement('span');
+      bottom.id = 'futureExpenseBalance';
+      bottom.className = 'scheduled-balance expense money-value';
+      bottom.hidden = true;
 
-      stack.append(futureIncome, futureExpense);
-      row.appendChild(stack);
+      const toggle = document.createElement('button');
+      toggle.type = 'button';
+      toggle.id = 'balanceViewToggle';
+      toggle.className = 'balance-view-toggle';
+      toggle.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7h-6.5a5.5 5.5 0 0 0-5.1 3.45"/><path d="m17 4 3 3-3 3"/><path d="M4 17h6.5a5.5 5.5 0 0 0 5.1-3.45"/><path d="m7 20-3-3 3-3"/></svg>';
+      toggle.addEventListener('click', () => {
+        setBalanceView(balanceView() === 'scheduled' ? 'realized' : 'scheduled');
+        renderFinancialState();
+      });
+
+      stack.append(top, bottom);
+      side.append(stack, toggle);
+      row.appendChild(side);
     }
   }
 
@@ -199,6 +224,46 @@
     if (el && el.textContent !== text) el.textContent = text;
   }
 
+  function setElementText(el, text) {
+    if (el && el.textContent !== text) el.textContent = text;
+  }
+
+  function renderBalanceSide({ futureIncome, futureExpense, realizedTotals }) {
+    const mode = balanceView();
+    const top = document.querySelector('#futureIncomeBalance');
+    const bottom = document.querySelector('#futureExpenseBalance');
+    const toggle = document.querySelector('#balanceViewToggle');
+    if (!top || !bottom) return;
+
+    if (mode === 'scheduled') {
+      setElementText(top, `+ ${money.format(futureIncome)}`);
+      setElementText(bottom, `- ${money.format(futureExpense)}`);
+      top.hidden = futureIncome <= 0;
+      bottom.hidden = futureExpense <= 0;
+      top.title = 'Agendado para receber';
+      bottom.title = 'Agendado para gastar';
+      top.setAttribute('aria-label', 'Valor agendado para receber');
+      bottom.setAttribute('aria-label', 'Valor agendado para gastar');
+      if (toggle) {
+        toggle.title = 'Mostrar valores já recebidos e gastos';
+        toggle.setAttribute('aria-label', 'Mostrar valores já recebidos e gastos');
+      }
+    } else {
+      setElementText(top, `Recebido ${money.format(realizedTotals.income)}`);
+      setElementText(bottom, `Gasto ${money.format(realizedTotals.expense)}`);
+      top.hidden = false;
+      bottom.hidden = false;
+      top.title = 'Total já recebido';
+      bottom.title = 'Total já gasto';
+      top.setAttribute('aria-label', 'Total já recebido');
+      bottom.setAttribute('aria-label', 'Total já gasto');
+      if (toggle) {
+        toggle.title = 'Mostrar valores agendados';
+        toggle.setAttribute('aria-label', 'Mostrar valores agendados');
+      }
+    }
+  }
+
   function renderFinancialState() {
     injectScheduledUI();
     const main = readMain();
@@ -211,20 +276,7 @@
     const realBalance = allTotals.income - allTotals.expense;
 
     setText('#totalBalance', money.format(realBalance));
-
-    const futureIncomeEl = document.querySelector('#futureIncomeBalance');
-    if (futureIncomeEl) {
-      const futureText = `+ ${money.format(futureIncome)}`;
-      if (futureIncomeEl.textContent !== futureText) futureIncomeEl.textContent = futureText;
-      futureIncomeEl.hidden = futureIncome <= 0;
-    }
-
-    const futureExpenseEl = document.querySelector('#futureExpenseBalance');
-    if (futureExpenseEl) {
-      const futureText = `- ${money.format(futureExpense)}`;
-      if (futureExpenseEl.textContent !== futureText) futureExpenseEl.textContent = futureText;
-      futureExpenseEl.hidden = futureExpense <= 0;
-    }
+    renderBalanceSide({ futureIncome, futureExpense, realizedTotals: allTotals });
 
     const selectedKey = monthKey(viewMonth);
     const monthItems = main.transactions.filter(item => String(item.date || '').slice(0, 7) === selectedKey);
