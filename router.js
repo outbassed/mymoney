@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.7';
+  const VERSION = '1.8';
   const GITHUB_REPO_BASE = '/mymoney';
   const basePath = location.hostname.endsWith('.github.io') ? GITHUB_REPO_BASE : '';
   let applyingRoute = false;
@@ -39,7 +39,6 @@
       button.classList.toggle('active', button.dataset.nav === page);
     });
     window.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' });
-
     if (page === 'history') document.querySelector('#historySearch')?.dispatchEvent(new Event('input'));
   }
 
@@ -54,9 +53,7 @@
       const debtsBtn = document.querySelector('#debtsBtn');
       if (debtsBtn) {
         debtsBtn.click();
-        if (route === '/mais/dividas/nova') {
-          setTimeout(() => document.querySelector('[data-debt-tab="new"]')?.click(), 0);
-        }
+        if (route === '/mais/dividas/nova') setTimeout(() => document.querySelector('[data-debt-tab="new"]')?.click(), 0);
       }
       return;
     }
@@ -68,9 +65,7 @@
       document.querySelector('#categoriesBtn')?.click();
       return;
     }
-    if (route === '/mais/backup') {
-      document.querySelector('#backupBtn')?.click();
-    }
+    if (route === '/mais/backup') document.querySelector('#backupBtn')?.click();
   }
 
   function applyRoute({ smooth = false } = {}) {
@@ -86,8 +81,7 @@
 
   function navigate(route, { replace = false, smooth = true } = {}) {
     const normalized = routeToPage[route] ? route : '/inicio';
-    const method = replace ? 'replaceState' : 'pushState';
-    history[method]({ route: normalized }, '', fullPath(normalized));
+    history[replace ? 'replaceState' : 'pushState']({ route: normalized }, '', fullPath(normalized));
     applyRoute({ smooth });
   }
 
@@ -105,8 +99,7 @@
     if (nav) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      const route = { home: '/inicio', history: '/historico', goals: '/metas', more: '/mais' }[nav.dataset.nav] || '/inicio';
-      navigate(route);
+      navigate({ home: '/inicio', history: '/historico', goals: '/metas', more: '/mais' }[nav.dataset.nav] || '/inicio');
       return;
     }
 
@@ -114,35 +107,16 @@
     if (go) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      const route = { home: '/inicio', history: '/historico', goals: '/metas', more: '/mais' }[go.dataset.go] || '/inicio';
-      navigate(route);
+      navigate({ home: '/inicio', history: '/historico', goals: '/metas', more: '/mais' }[go.dataset.go] || '/inicio');
       return;
     }
 
-    if (!applyingRoute && event.target.closest('#debtsBtn')) {
-      history.pushState({ route: '/mais/dividas' }, '', fullPath('/mais/dividas'));
-      return;
-    }
-    if (!applyingRoute && event.target.closest('#simulationBtn')) {
-      history.pushState({ route: '/mais/rascunho' }, '', fullPath('/mais/rascunho'));
-      return;
-    }
-    if (!applyingRoute && event.target.closest('#categoriesBtn')) {
-      history.pushState({ route: '/mais/categorias' }, '', fullPath('/mais/categorias'));
-      return;
-    }
-    if (!applyingRoute && event.target.closest('#backupBtn')) {
-      history.pushState({ route: '/mais/backup' }, '', fullPath('/mais/backup'));
-      return;
-    }
-    if (!applyingRoute && event.target.closest('[data-debt-tab="new"]')) {
-      history.pushState({ route: '/mais/dividas/nova' }, '', fullPath('/mais/dividas/nova'));
-      return;
-    }
-    if (!applyingRoute && event.target.closest('[data-debt-tab="list"]')) {
-      history.pushState({ route: '/mais/dividas' }, '', fullPath('/mais/dividas'));
-      return;
-    }
+    if (!applyingRoute && event.target.closest('#debtsBtn')) { history.pushState({ route: '/mais/dividas' }, '', fullPath('/mais/dividas')); return; }
+    if (!applyingRoute && event.target.closest('#simulationBtn')) { history.pushState({ route: '/mais/rascunho' }, '', fullPath('/mais/rascunho')); return; }
+    if (!applyingRoute && event.target.closest('#categoriesBtn')) { history.pushState({ route: '/mais/categorias' }, '', fullPath('/mais/categorias')); return; }
+    if (!applyingRoute && event.target.closest('#backupBtn')) { history.pushState({ route: '/mais/backup' }, '', fullPath('/mais/backup')); return; }
+    if (!applyingRoute && event.target.closest('[data-debt-tab="new"]')) { history.pushState({ route: '/mais/dividas/nova' }, '', fullPath('/mais/dividas/nova')); return; }
+    if (!applyingRoute && event.target.closest('[data-debt-tab="list"]')) { history.pushState({ route: '/mais/dividas' }, '', fullPath('/mais/dividas')); return; }
 
     const debtClose = event.target.closest('#closeDebts');
     const simulationClose = event.target.closest('#closeSimulation');
@@ -157,9 +131,7 @@
   window.addEventListener('popstate', () => applyRoute({ smooth: false }));
 
   restore404Route();
-  if (currentRoute() === '/' || !routeToPage[currentRoute()]) {
-    history.replaceState({ route: '/inicio' }, '', fullPath('/inicio'));
-  }
+  if (currentRoute() === '/' || !routeToPage[currentRoute()]) history.replaceState({ route: '/inicio' }, '', fullPath('/inicio'));
   applyRoute({ smooth: false });
 
   if ('serviceWorker' in navigator) {
