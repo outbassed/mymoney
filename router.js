@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.8';
+  const VERSION = '1.9';
   const GITHUB_REPO_BASE = '/mymoney';
   const basePath = location.hostname.endsWith('.github.io') ? GITHUB_REPO_BASE : '';
   let applyingRoute = false;
