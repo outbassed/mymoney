@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const VERSION = '1.6';
+  const VERSION = '1.7';
   const GITHUB_REPO_BASE = '/mymoney';
   const basePath = location.hostname.endsWith('.github.io') ? GITHUB_REPO_BASE : '';
   let applyingRoute = false;
@@ -14,6 +14,7 @@
     '/mais': 'more',
     '/mais/dividas': 'more',
     '/mais/dividas/nova': 'more',
+    '/mais/rascunho': 'more',
     '/mais/simulacao': 'more',
     '/mais/categorias': 'more',
     '/mais/backup': 'more'
@@ -59,7 +60,7 @@
       }
       return;
     }
-    if (route === '/mais/simulacao') {
+    if (route === '/mais/rascunho' || route === '/mais/simulacao') {
       document.querySelector('#simulationBtn')?.click();
       return;
     }
@@ -80,7 +81,7 @@
     renderPage(page, smooth);
     if (route.startsWith('/mais/')) setTimeout(() => openSubroute(route), 0);
     setTimeout(() => { applyingRoute = false; }, 10);
-    document.title = route === '/inicio' ? 'MyMoney' : `MyMoney · ${route.split('/').filter(Boolean).map(part => ({ historico: 'Histórico', metas: 'Metas', mais: 'Mais', dividas: 'Dívidas', nova: 'Nova dívida', simulacao: 'Simulação', categorias: 'Categorias', backup: 'Backup' }[part] || part)).join(' · ')}`;
+    document.title = route === '/inicio' ? 'MyMoney' : `MyMoney · ${route.split('/').filter(Boolean).map(part => ({ historico: 'Histórico', metas: 'Metas', mais: 'Mais', dividas: 'Dívidas', nova: 'Nova dívida', rascunho: 'Rascunho', simulacao: 'Rascunho', categorias: 'Categorias', backup: 'Backup' }[part] || part)).join(' · ')}`;
   }
 
   function navigate(route, { replace = false, smooth = true } = {}) {
@@ -123,7 +124,7 @@
       return;
     }
     if (!applyingRoute && event.target.closest('#simulationBtn')) {
-      history.pushState({ route: '/mais/simulacao' }, '', fullPath('/mais/simulacao'));
+      history.pushState({ route: '/mais/rascunho' }, '', fullPath('/mais/rascunho'));
       return;
     }
     if (!applyingRoute && event.target.closest('#categoriesBtn')) {
