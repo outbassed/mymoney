@@ -18,6 +18,11 @@
     return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   }
 
+  function todayISO() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
   function realBalance() {
     try {
       const main = JSON.parse(localStorage.getItem(MAIN_STORAGE_KEY) || '{}');
@@ -25,7 +30,8 @@
       const today = todayISO();
       return Math.round(transactions.reduce((sum, item) => {
         const value = Number(item.amount) || 0;
-        if (item.type === 'income' && String(item.date || '') > today) return sum;
+        const future = String(item.date || '') > today;
+        if (future && (item.type === 'income' || item.type === 'expense')) return sum;
         if (item.type === 'income') return sum + value;
         if (item.type === 'expense') return sum - value;
         return sum;
@@ -35,12 +41,7 @@
     }
   }
 
-  function todayISO() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  }
-
-  function freshSlot({ id = uid('sim'), name = 'Nova simulação', system = false, initialBalance = realBalance(), movements = [] } = {}) {
+  function freshSlot({ id = uid('sim'), name = 'Novo rascunho', system = false, initialBalance = realBalance(), movements = [] } = {}) {
     const now = Date.now();
     return { id, name, system, initialBalance: Number(initialBalance) || 0, movements: Array.isArray(movements) ? movements : [], createdAt: now, updatedAt: now };
   }
@@ -48,7 +49,7 @@
   function normalizeData(parsed) {
     const slots = Array.isArray(parsed?.slots) ? parsed.slots.filter(Boolean).map(slot => ({
       id: String(slot.id || uid('sim')),
-      name: String(slot.name || 'Simulação'),
+      name: String(slot.name || 'Rascunho'),
       system: Boolean(slot.system),
       initialBalance: Number(slot.initialBalance) || 0,
       movements: Array.isArray(slot.movements) ? slot.movements.map(item => ({
@@ -125,7 +126,7 @@
     const button = document.createElement('button');
     button.className = 'settings-item';
     button.id = 'simulationBtn';
-    button.innerHTML = '<span class="settings-icon simulation"><svg><use href="assets/icons.svg#spark"></use></svg></span><span><b>Simulação</b><small>Teste cenários sem mexer no saldo real</small></span><i>›</i>';
+    button.innerHTML = '<span class="settings-icon simulation"><svg><use href="assets/icons.svg#spark"></use></svg></span><span><b>Rascunho</b><small>Teste valores sem mexer no saldo real</small></span><i>›</i>';
     const debtsBtn = $('#debtsBtn');
     if (debtsBtn?.parentNode === group) debtsBtn.after(button);
     else group.insertBefore(button, group.firstChild);
@@ -137,15 +138,15 @@
   sheet.id = 'simulationSheet';
   sheet.setAttribute('role', 'dialog');
   sheet.setAttribute('aria-modal', 'true');
-  sheet.setAttribute('aria-label', 'Simulação');
+  sheet.setAttribute('aria-label', 'Rascunho');
   sheet.innerHTML = `
     <div class="sheet-handle"></div>
     <div class="sheet-title-row simulation-title-row">
-      <div><h2>Simulação</h2><p>Faça contas à vontade. Nada daqui altera sua carteira real.</p></div>
+      <div><h2>Rascunho</h2><p>Faça contas à vontade. Nada daqui altera sua carteira real.</p></div>
       <button class="close-btn" id="closeSimulation" type="button">×</button>
     </div>
-    <div class="simulation-tabs" role="tablist" aria-label="Área de simulação">
-      <button type="button" class="active" data-sim-tab="simulate">Simular</button>
+    <div class="simulation-tabs" role="tablist" aria-label="Área de rascunho">
+      <button type="button" class="active" data-sim-tab="simulate">Rascunho</button>
       <button type="button" data-sim-tab="slots">Slots</button>
     </div>
 
@@ -156,7 +157,7 @@
       </div>
 
       <div class="sim-balance-card">
-        <label><span>Saldo inicial</span><div class="sim-balance-input"><small>R$</small><input id="simInitialBalance" inputmode="decimal" autocomplete="off" aria-label="Saldo inicial da simulação"></div></label>
+        <label><span>Saldo inicial</span><div class="sim-balance-input"><small>R$</small><input id="simInitialBalance" inputmode="decimal" autocomplete="off" aria-label="Saldo inicial do rascunho"></div></label>
         <button type="button" id="simUseRealBalance">Usar saldo real</button>
       </div>
 
@@ -164,7 +165,7 @@
         <div><span>Entradas</span><strong class="money-value" id="simIncomeTotal">R$ 0,00</strong></div>
         <div><span>Gastos</span><strong class="money-value" id="simExpenseTotal">R$ 0,00</strong></div>
       </div>
-      <div class="sim-result-card"><span>Saldo simulado</span><strong class="money-value" id="simFinalBalance">R$ 0,00</strong></div>
+      <div class="sim-result-card"><span>Saldo do rascunho</span><strong class="money-value" id="simFinalBalance">R$ 0,00</strong></div>
 
       <form id="simMovementForm" class="sim-movement-form">
         <div class="segmented sim-type"><button type="button" data-sim-type="income">Entrada</button><button type="button" class="active" data-sim-type="expense">Gasto</button></div>
@@ -172,12 +173,12 @@
           <label class="field"><span>Valor</span><input id="simAmount" inputmode="decimal" autocomplete="off" placeholder="R$ 0,00" required></label>
           <label class="field"><span>Descrição <em>opcional</em></span><input id="simDescription" maxlength="50" placeholder="Ex.: mercado"></label>
         </div>
-        <button class="primary-wide" type="submit">Adicionar à simulação</button>
+        <button class="primary-wide" type="submit">Adicionar ao rascunho</button>
       </form>
 
-      <div class="sim-list-head"><strong>Movimentos simulados</strong><button type="button" id="simClear">Limpar</button></div>
+      <div class="sim-list-head"><strong>Movimentos do rascunho</strong><button type="button" id="simClear">Limpar</button></div>
       <div id="simMovementList" class="sim-movement-list"></div>
-      <div id="simMovementEmpty" class="empty-state sim-empty"><svg><use href="assets/icons.svg#spark"></use></svg><strong>Nenhum valor simulado</strong><span>Adicione entradas e gastos para testar o cenário.</span></div>
+      <div id="simMovementEmpty" class="empty-state sim-empty"><svg><use href="assets/icons.svg#spark"></use></svg><strong>Rascunho vazio</strong><span>Adicione entradas e gastos para testar o cenário.</span></div>
     </section>
 
     <section class="simulation-panel" data-sim-panel="slots">
@@ -248,7 +249,7 @@
     [...slot.movements].reverse().forEach(item => {
       const row = document.createElement('div');
       row.className = `sim-movement-row ${item.type}`;
-      row.innerHTML = `<span class="sim-movement-icon">${item.type === 'income' ? '+' : '−'}</span><span class="sim-movement-copy"><b>${escapeHtml(item.description || (item.type === 'income' ? 'Entrada' : 'Gasto'))}</b><small>${item.type === 'income' ? 'Entrada simulada' : 'Gasto simulado'}</small></span><strong class="money-value">${item.type === 'income' ? '+' : '-'} ${money.format(item.amount)}</strong><button type="button" aria-label="Excluir movimento">×</button>`;
+      row.innerHTML = `<span class="sim-movement-icon">${item.type === 'income' ? '+' : '−'}</span><span class="sim-movement-copy"><b>${escapeHtml(item.description || (item.type === 'income' ? 'Entrada' : 'Gasto'))}</b><small>${item.type === 'income' ? 'Entrada do rascunho' : 'Gasto do rascunho'}</small></span><strong class="money-value">${item.type === 'income' ? '+' : '-'} ${money.format(item.amount)}</strong><button type="button" aria-label="Excluir movimento">×</button>`;
       $('button', row).addEventListener('click', () => removeMovement(item.id));
       movementList.appendChild(row);
     });
@@ -348,12 +349,12 @@
   function clearCurrent() {
     const slot = currentSlot();
     if (!slot) return;
-    if (!slot.movements.length) return showToast('A simulação já está vazia.');
+    if (!slot.movements.length) return showToast('O rascunho já está vazio.');
     if (!window.confirm(`Limpar todos os movimentos de “${slot.name}”?`)) return;
     slot.movements = [];
     touch(slot);
     renderAll();
-    showToast('Simulação limpa.');
+    showToast('Rascunho limpo.');
   }
 
   function promptSlotName(defaultName = '') {
@@ -368,7 +369,7 @@
   }
 
   function createSlot() {
-    const name = promptSlotName('Nova simulação');
+    const name = promptSlotName('Novo rascunho');
     if (!name) return;
     const slot = freshSlot({ name });
     data.slots.push(slot);
@@ -382,7 +383,7 @@
   function saveAsNewSlot() {
     const source = currentSlot();
     if (!source) return;
-    const name = promptSlotName(source.system ? 'Minha simulação' : `${source.name} - cópia`);
+    const name = promptSlotName(source.system ? 'Meu rascunho' : `${source.name} - cópia`);
     if (!name) return;
     const slot = freshSlot({
       name,
@@ -393,7 +394,7 @@
     data.activeSlotId = slot.id;
     saveData();
     renderAll();
-    showToast('Simulação salva em um novo slot.');
+    showToast('Rascunho salvo em um novo slot.');
   }
 
   function openSlot(id) {
