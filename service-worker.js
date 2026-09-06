@@ -1,4 +1,4 @@
-const SW_VERSION = '1.6';
+const SW_VERSION = '1.7';
 
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
