@@ -42,11 +42,12 @@
   }
 
   function balanceView() {
-    return localStorage.getItem(BALANCE_VIEW_KEY) === 'realized' ? 'realized' : 'scheduled';
+    const saved = localStorage.getItem(BALANCE_VIEW_KEY);
+    return saved === 'projected' || saved === 'realized' ? 'projected' : 'scheduled';
   }
 
   function setBalanceView(view) {
-    localStorage.setItem(BALANCE_VIEW_KEY, view === 'realized' ? 'realized' : 'scheduled');
+    localStorage.setItem(BALANCE_VIEW_KEY, view === 'projected' ? 'projected' : 'scheduled');
   }
 
   function isScheduled(item) {
@@ -151,6 +152,7 @@
         .balance-value-row #totalBalance{display:block;font-size:34px;line-height:1.1;letter-spacing:-.03em}
         .balance-side-wrap{display:flex;align-items:center;gap:6px;min-width:0}
         .scheduled-balance-stack{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-height:34px;min-width:0}
+        .scheduled-balance-stack[hidden]{display:none}
         .scheduled-balance{font-size:13px;font-weight:850;line-height:1.15;white-space:nowrap;letter-spacing:-.01em}
         .scheduled-balance.income{color:#76ad91}
         .scheduled-balance.expense{color:#bc7f86}
@@ -200,7 +202,7 @@
       toggle.className = 'balance-view-toggle';
       toggle.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7h-6.5a5.5 5.5 0 0 0-5.1 3.45"/><path d="m17 4 3 3-3 3"/><path d="M4 17h6.5a5.5 5.5 0 0 0 5.1-3.45"/><path d="m7 20-3-3 3-3"/></svg>';
       toggle.addEventListener('click', () => {
-        setBalanceView(balanceView() === 'scheduled' ? 'realized' : 'scheduled');
+        setBalanceView(balanceView() === 'scheduled' ? 'projected' : 'scheduled');
         renderFinancialState();
       });
 
@@ -228,39 +230,42 @@
     if (el && el.textContent !== text) el.textContent = text;
   }
 
-  function renderBalanceSide({ futureIncome, futureExpense, realizedTotals }) {
+  function renderBalanceSide({ futureIncome, futureExpense, realBalance, projectedBalance }) {
     const mode = balanceView();
+    const balance = document.querySelector('#totalBalance');
+    const stack = document.querySelector('#scheduledBalanceStack');
     const top = document.querySelector('#futureIncomeBalance');
     const bottom = document.querySelector('#futureExpenseBalance');
     const toggle = document.querySelector('#balanceViewToggle');
-    if (!top || !bottom) return;
+    if (!balance || !stack || !top || !bottom) return;
 
-    if (mode === 'scheduled') {
-      setElementText(top, `+ ${money.format(futureIncome)}`);
-      setElementText(bottom, `- ${money.format(futureExpense)}`);
-      top.hidden = futureIncome <= 0;
-      bottom.hidden = futureExpense <= 0;
-      top.title = 'Agendado para receber';
-      bottom.title = 'Agendado para gastar';
-      top.setAttribute('aria-label', 'Valor agendado para receber');
-      bottom.setAttribute('aria-label', 'Valor agendado para gastar');
+    if (mode === 'projected') {
+      setElementText(balance, money.format(projectedBalance));
+      balance.title = 'Saldo projetado com valores agendados';
+      balance.setAttribute('aria-label', `Saldo projetado ${money.format(projectedBalance)}`);
+      stack.hidden = true;
       if (toggle) {
-        toggle.title = 'Mostrar valores já recebidos e gastos';
-        toggle.setAttribute('aria-label', 'Mostrar valores já recebidos e gastos');
+        toggle.title = 'Mostrar saldo real e valores agendados';
+        toggle.setAttribute('aria-label', 'Mostrar saldo real e valores agendados');
       }
-    } else {
-      setElementText(top, `Recebido ${money.format(realizedTotals.income)}`);
-      setElementText(bottom, `Gasto ${money.format(realizedTotals.expense)}`);
-      top.hidden = false;
-      bottom.hidden = false;
-      top.title = 'Total já recebido';
-      bottom.title = 'Total já gasto';
-      top.setAttribute('aria-label', 'Total já recebido');
-      bottom.setAttribute('aria-label', 'Total já gasto');
-      if (toggle) {
-        toggle.title = 'Mostrar valores agendados';
-        toggle.setAttribute('aria-label', 'Mostrar valores agendados');
-      }
+      return;
+    }
+
+    setElementText(balance, money.format(realBalance));
+    balance.title = 'Saldo real atual';
+    balance.setAttribute('aria-label', `Saldo real ${money.format(realBalance)}`);
+    stack.hidden = futureIncome <= 0 && futureExpense <= 0;
+    setElementText(top, `+ ${money.format(futureIncome)}`);
+    setElementText(bottom, `- ${money.format(futureExpense)}`);
+    top.hidden = futureIncome <= 0;
+    bottom.hidden = futureExpense <= 0;
+    top.title = 'Agendado para receber';
+    bottom.title = 'Agendado para gastar';
+    top.setAttribute('aria-label', 'Valor agendado para receber');
+    bottom.setAttribute('aria-label', 'Valor agendado para gastar');
+    if (toggle) {
+      toggle.title = 'Mostrar saldo projetado';
+      toggle.setAttribute('aria-label', 'Mostrar saldo projetado');
     }
   }
 
@@ -274,9 +279,9 @@
     const realized = main.transactions.filter(item => !isScheduled(item));
     const allTotals = totals(realized);
     const realBalance = allTotals.income - allTotals.expense;
+    const projectedBalance = realBalance + futureIncome - futureExpense;
 
-    setText('#totalBalance', money.format(realBalance));
-    renderBalanceSide({ futureIncome, futureExpense, realizedTotals: allTotals });
+    renderBalanceSide({ futureIncome, futureExpense, realBalance, projectedBalance });
 
     const selectedKey = monthKey(viewMonth);
     const monthItems = main.transactions.filter(item => String(item.date || '').slice(0, 7) === selectedKey);
