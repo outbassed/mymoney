@@ -40,8 +40,16 @@
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   }
 
+  function isScheduled(item) {
+    return (item?.type === 'income' || item?.type === 'expense') && String(item.date || '') > todayISO();
+  }
+
   function isScheduledIncome(item) {
-    return item?.type === 'income' && String(item.date || '') > todayISO();
+    return item?.type === 'income' && isScheduled(item);
+  }
+
+  function isScheduledExpense(item) {
+    return item?.type === 'expense' && isScheduled(item);
   }
 
   function transactionId(debtId, month) {
@@ -125,36 +133,55 @@
     }
   }
 
-  function injectScheduledIncomeUI() {
-    if (!document.querySelector('#futureIncomeStyles')) {
+  function injectScheduledUI() {
+    if (!document.querySelector('#scheduledBalanceStyles')) {
       const style = document.createElement('style');
-      style.id = 'futureIncomeStyles';
+      style.id = 'scheduledBalanceStyles';
       style.textContent = `
-        .balance-value-row{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;margin:10px 0 20px}
+        .balance-value-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 20px}
         .balance-value-row #totalBalance{display:block;font-size:34px;line-height:1.1;letter-spacing:-.03em}
-        .future-income-balance{font-size:15px;font-weight:850;color:#91a0b4;white-space:nowrap;letter-spacing:-.01em}
-        .future-income-balance[hidden]{display:none}
-        .scheduled-income{opacity:.82}
-        .scheduled-income .tx-value b{color:#a9b8ca}
-        .scheduled-income .tx-value small{color:#8fa5bd}
-        .hidden-values .future-income-balance,.hidden-values #monthResultPill{filter:blur(7px);user-select:none}
+        .scheduled-balance-stack{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;min-height:34px}
+        .scheduled-balance{font-size:13px;font-weight:850;line-height:1.15;white-space:nowrap;letter-spacing:-.01em}
+        .scheduled-balance.income{color:#76ad91}
+        .scheduled-balance.expense{color:#bc7f86}
+        .scheduled-balance[hidden]{display:none}
+        .scheduled-transaction{opacity:.82}
+        .scheduled-transaction.scheduled-income .tx-value b{color:#8caf9d}
+        .scheduled-transaction.scheduled-income .tx-value small{color:#7f9d90}
+        .scheduled-transaction.scheduled-expense .tx-value b{color:#b98b90}
+        .scheduled-transaction.scheduled-expense .tx-value small{color:#a27d82}
+        .hidden-values .scheduled-balance,.hidden-values #monthResultPill{filter:blur(7px);user-select:none}
       `;
       document.head.appendChild(style);
     }
 
     const balance = document.querySelector('#totalBalance');
-    if (balance && !document.querySelector('#futureIncomeBalance')) {
+    if (balance && !document.querySelector('#scheduledBalanceStack')) {
       const row = document.createElement('div');
       row.className = 'balance-value-row';
       balance.parentNode.insertBefore(row, balance);
       row.appendChild(balance);
-      const future = document.createElement('span');
-      future.id = 'futureIncomeBalance';
-      future.className = 'future-income-balance money-value';
-      future.hidden = true;
-      future.title = 'Previsto para receber';
-      future.setAttribute('aria-label', 'Valor previsto para receber');
-      row.appendChild(future);
+
+      const stack = document.createElement('span');
+      stack.id = 'scheduledBalanceStack';
+      stack.className = 'scheduled-balance-stack';
+
+      const futureIncome = document.createElement('span');
+      futureIncome.id = 'futureIncomeBalance';
+      futureIncome.className = 'scheduled-balance income money-value';
+      futureIncome.hidden = true;
+      futureIncome.title = 'Agendado para receber';
+      futureIncome.setAttribute('aria-label', 'Valor agendado para receber');
+
+      const futureExpense = document.createElement('span');
+      futureExpense.id = 'futureExpenseBalance';
+      futureExpense.className = 'scheduled-balance expense money-value';
+      futureExpense.hidden = true;
+      futureExpense.title = 'Agendado para gastar';
+      futureExpense.setAttribute('aria-label', 'Valor agendado para gastar');
+
+      stack.append(futureIncome, futureExpense);
+      row.appendChild(stack);
     }
   }
 
@@ -173,31 +200,44 @@
   }
 
   function renderFinancialState() {
-    injectScheduledIncomeUI();
+    injectScheduledUI();
     const main = readMain();
     const futureIncomeItems = main.transactions.filter(isScheduledIncome);
+    const futureExpenseItems = main.transactions.filter(isScheduledExpense);
     const futureIncome = futureIncomeItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-    const realized = main.transactions.filter(item => !isScheduledIncome(item));
+    const futureExpense = futureExpenseItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+    const realized = main.transactions.filter(item => !isScheduled(item));
     const allTotals = totals(realized);
     const realBalance = allTotals.income - allTotals.expense;
 
     setText('#totalBalance', money.format(realBalance));
-    const futureEl = document.querySelector('#futureIncomeBalance');
-    if (futureEl) {
+
+    const futureIncomeEl = document.querySelector('#futureIncomeBalance');
+    if (futureIncomeEl) {
       const futureText = `+ ${money.format(futureIncome)}`;
-      if (futureEl.textContent !== futureText) futureEl.textContent = futureText;
-      futureEl.hidden = futureIncome <= 0;
+      if (futureIncomeEl.textContent !== futureText) futureIncomeEl.textContent = futureText;
+      futureIncomeEl.hidden = futureIncome <= 0;
+    }
+
+    const futureExpenseEl = document.querySelector('#futureExpenseBalance');
+    if (futureExpenseEl) {
+      const futureText = `- ${money.format(futureExpense)}`;
+      if (futureExpenseEl.textContent !== futureText) futureExpenseEl.textContent = futureText;
+      futureExpenseEl.hidden = futureExpense <= 0;
     }
 
     const selectedKey = monthKey(viewMonth);
     const monthItems = main.transactions.filter(item => String(item.date || '').slice(0, 7) === selectedKey);
-    const realizedMonth = monthItems.filter(item => !isScheduledIncome(item));
+    const realizedMonth = monthItems.filter(item => !isScheduled(item));
     const monthTotals = totals(realizedMonth);
     const monthResult = monthTotals.income - monthTotals.expense;
+    const realizedExpenses = realizedMonth.filter(item => item.type === 'expense').map(item => Number(item.amount) || 0);
+    const largestExpense = realizedExpenses.length ? Math.max(...realizedExpenses) : 0;
 
     setText('#monthIncome', money.format(monthTotals.income));
     setText('#monthExpense', money.format(monthTotals.expense));
     setText('#monthLeft', money.format(monthResult));
+    setText('#largestExpense', money.format(largestExpense));
     setText('#monthResultPill', `${monthResult >= 0 ? '+' : ''}${money.format(monthResult)}`);
     document.querySelector('#monthResultPill')?.classList.toggle('danger-text', monthResult < 0);
 
@@ -212,8 +252,13 @@
 
       const detail = row.querySelector('.tx-copy small');
       const status = row.querySelector('.tx-value small');
-      const scheduled = isScheduledIncome(tx);
-      row.classList.toggle('scheduled-income', scheduled);
+      const scheduled = isScheduled(tx);
+      const scheduledIncome = isScheduledIncome(tx);
+      const scheduledExpense = isScheduledExpense(tx);
+
+      row.classList.toggle('scheduled-transaction', scheduled);
+      row.classList.toggle('scheduled-income', scheduledIncome);
+      row.classList.toggle('scheduled-expense', scheduledExpense);
 
       if (tx.source === 'debt' && detail && !detail.textContent.includes('Dívida')) detail.textContent += ' · Dívida';
       if (scheduled) {
